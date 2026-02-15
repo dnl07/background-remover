@@ -1,11 +1,11 @@
 import torch
 from torch.utils.data import DataLoader
-from unet import UNet
-from dataset import SegmentationDataset, transform
+from ..unet import UNet
+from .dataset import SegmentationDataset, transform
 
-def train(images_dir, masks_dir, learning_rate, epochs):
+def train(images_dir, masks_dir, epochs, batch_size, learning_rate):
     train_dataset = SegmentationDataset(images_dir, masks_dir, transform)
-    train_loader = DataLoader(train_dataset, batch_sampler=4, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_sampler=batch_size, shuffle=True)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = UNet(num_classes=1).to(device)
