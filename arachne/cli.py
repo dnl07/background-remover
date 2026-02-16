@@ -1,5 +1,4 @@
 import argparse
-from pathlib import Path
 from .train import train
 
 def run_cli():
@@ -18,6 +17,6 @@ def run_cli():
     args = parser.parse_args()
 
     if args.command == "train":
-        train("data/images", "images/masks", args.epochs, args.batch, args.lr)
+        train("data/train/images", "images/train/masks", "data/val/images", "images/val/masks", args.epochs, args.batch, args.lr)
     else:
         parser.print_help()
