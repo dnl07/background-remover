@@ -12,23 +12,22 @@ class SegmentationDataset(Dataset):
         self.transform = transform
 
         self.images = sorted(list(Path(images_dir).glob("*.*")))
-        self.masks = sorted(list(Path(images_dir).glob("*.*")))
+        self.masks = sorted(list(Path(masks_dir).glob("*.*")))
 
     def __len__(self):
         return len(self.images)
         
     def __getitem__(self, idx):
-        img_path = Path(self.images_dir, self.images[idx])
-        mask_path = Path(self.masks_dir, self.masks[idx])
-    
+        img_path = self.images[idx]
+        mask_path = self.masks[idx]
+
+        print(img_path)
+
         image = Image.open(img_path).convert("RGB")
         mask = Image.open(mask_path).convert("L")
 
         if self.transform:
-            image = self.transform(image)
-            mask = self.transform(mask)
-
-        mask = torch.where(mask > 0, 1.0, 0.0)
+            image, mask = self.transform(image, mask)
 
         return image, mask
 
@@ -36,7 +35,7 @@ class TrainTransform:
     def __call__(self, img, mask):
         # Resizing
         img = TF.resize(img, (572, 572))
-        mask = TF.resize(mask, (388, 388))
+        mask = TF.resize(mask, (572, 572))
 
         # Random brightness
         brightness = random.uniform(0.75, 1.25)
@@ -63,7 +62,7 @@ class ValidationTransform:
     def __call__(self, img, mask):
         # Resizing
         img = TF.resize(img, (572, 572))
-        mask = TF.resize(mask, (388, 388))
+        mask = TF.resize(mask, (572, 572))
 
         # Tensor
         img = TF.to_tensor(img)

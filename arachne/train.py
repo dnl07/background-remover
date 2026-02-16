@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 from .unet import UNet
 from .dataset import SegmentationDataset, TrainTransform, ValidationTransform
 
-def train(train_images_dir, train_masks_dir, val_images_dir, val_masks_dir, epochs, batch_size, learning_rate):
+def train(train_images_dir, train_masks_dir, val_images_dir, val_masks_dir, epochs, batch_size, learning_rate, verbose=False):
     train_dataset = SegmentationDataset(train_images_dir, train_masks_dir, TrainTransform())
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
@@ -13,6 +13,12 @@ def train(train_images_dir, train_masks_dir, val_images_dir, val_masks_dir, epoc
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = UNet(num_classes=1).to(device)
 
+    if verbose:
+        if (device == "cuda"):
+            print("Using GPU")
+        else:
+            print("Using CPU")
+           
     criterion = torch.nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -22,7 +28,7 @@ def train(train_images_dir, train_masks_dir, val_images_dir, val_masks_dir, epoc
 
         for train_images, train_masks in train_loader:
             train_images = train_images.to(device)
-            train_masks = train_masks.to(device).unsqueeze(1)
+            train_masks = train_masks.to(device)
 
             preds = model(train_images)
             loss = criterion(preds, train_masks)
@@ -40,7 +46,7 @@ def train(train_images_dir, train_masks_dir, val_images_dir, val_masks_dir, epoc
         with torch.no_grad():
             for val_images, val_masks in val_loader:
                 val_images = val_images.to(device)
-                val_masks = val_masks.to(device).unsqueeze(1)
+                val_masks = val_masks.to(device)
 
                 val_preds = model(val_images)
                 loss = criterion(val_preds, val_masks)
@@ -50,5 +56,5 @@ def train(train_images_dir, train_masks_dir, val_images_dir, val_masks_dir, epoc
 
         print(f"Epoch [{epoch + 1}/{epochs}] - Traing-Loss: {epoch_loss:.4f} - Val-Loss: {val_loss:.4f}")
     
-    torch.save(model.state_dict(), "unet_bg_removal.pth")
+    torch.save(model.state_dict(), "arachne/output/unet_bg_removal.pth")
     print("Model saved!")
