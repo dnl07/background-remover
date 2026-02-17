@@ -1,4 +1,4 @@
-from arachne.cli import run_cli
+from background_remover.cli import run_cli
 
 def main():
     run_cli()

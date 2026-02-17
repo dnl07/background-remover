@@ -14,12 +14,12 @@ def run_cli():
 
     inference_parser = subparsers.add_parser("inference")
     inference_parser.add_argument("--image", type=str, required=True)
-    inference_parser.add_argument("--model", type=str, default="arachne/output/unet_bg_removal.pth")
+    inference_parser.add_argument("--model", type=str, default="background_remover/output/unet_bg_removal.pth")
 
     args = parser.parse_args()
 
     if args.command == "train":
-        train("arachne/data/train/images", "arachne/data/train/masks", "arachne/data/val/images", "arachne/data/val/masks", args.epochs, args.batch, args.lr, args.verbose)
+        train("background_remover/data/train/images", "background_remover/data/train/masks", "background_remover/data/val/images", "background_remover/data/val/masks", args.epochs, args.batch, args.lr, args.verbose)
     elif args.command == "inference":
         inference(args.image, args.model, "cpu" )
     else:

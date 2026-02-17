@@ -12,7 +12,9 @@ def train(train_images_dir, train_masks_dir, val_images_dir, val_masks_dir, epoc
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = UNet(num_classes=1).to(device)
-
+    print(torch.cuda.is_available())
+    print(torch.version.cuda)
+    print(torch.backends.cudnn.enabled)
     if verbose:
         if (device == "cuda"):
             print("Using GPU")
@@ -56,5 +58,5 @@ def train(train_images_dir, train_masks_dir, val_images_dir, val_masks_dir, epoc
 
         print(f"Epoch [{epoch + 1}/{epochs}] - Traing-Loss: {epoch_loss:.4f} - Val-Loss: {val_loss:.4f}")
     
-    torch.save(model.state_dict(), "arachne/output/unet_bg_removal.pth")
+    torch.save(model.state_dict(), "background_remover/output/unet_bg_removal.pth")
     print("Model saved!")
