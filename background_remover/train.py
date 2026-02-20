@@ -6,12 +6,22 @@ from .printer import info, warning, success
 from pathlib import Path
 
 def train(train_images_dir, train_masks_dir, val_images_dir, val_masks_dir, epochs, batch_size, learning_rate, verbose=False):
+    '''Train the UNet model for background removal.'''
+
+    # Load datasets and create data loaders
     train_dataset = SegmentationDataset(train_images_dir, train_masks_dir, TrainTransform())
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+    if verbose:
+        info(f"Found {len(train_dataset)} training samples")
 
     val_dataset = SegmentationDataset(val_images_dir, val_masks_dir, ValidationTransform())
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
+    if verbose:
+        info(f"Found {len(val_dataset)} validation samples")
+
+    # Set device
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     if verbose:
@@ -20,11 +30,12 @@ def train(train_images_dir, train_masks_dir, val_images_dir, val_masks_dir, epoc
         else:
             warning("Using CPU")
 
+    # Initialize model, loss function, and optimizer
     model = UNet(num_classes=1).to(device)
-
     criterion = torch.nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
+    # Training loop
     for epoch in range(epochs):
         model.train()
         running_loss = 0.0
@@ -60,6 +71,7 @@ def train(train_images_dir, train_masks_dir, val_images_dir, val_masks_dir, epoc
         if verbose:
             info(f"Epoch [{epoch + 1}/{epochs}] - Training-Loss: {epoch_loss:.4f} - Val-Loss: {val_loss:.4f}")
     
+    # Save the trained model
     model_path = Path("models/unet_bg_removal.pth")
     model_path.parent.mkdir(parents=True, exist_ok=True)
 

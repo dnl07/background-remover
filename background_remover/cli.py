@@ -61,12 +61,18 @@ def run_cli():
         type=str, 
         help="Path to the trained UNet model (default: background_remover/output/unet_bg_removal.pth)"
     )
+    inference_parser.add_argument(
+        "--output-dir", 
+        type=str,
+        default="./output",
+        help="Path to the output directory for saving inference results (default: ./output/)"
+    )
 
     args = parser.parse_args()
 
     if args.command == "train":
-        train(f"{args.data_dir}/train/images", f"{args.data_dir}/train/masks", f"{args.data_dir}/val/images", f"{args.data_dir}/val/masks", args.epochs, args.batch, args.lr, args.verbose)
+        train(f"{args.data_dir}/train/images", f"{args.data_dir}/train/masks", f"{args.data_dir}/val/images", f"{args.data_dir}/val/masks", args.epochs, args.batch, args.lr, verbose=args.verbose)
     elif args.command == "inference":
-        inference(args.image, args.model)
+        inference(args.image, args.model, args.output_dir)
     else:
         parser.print_help()

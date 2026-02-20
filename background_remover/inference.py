@@ -1,12 +1,19 @@
+from datetime import datetime
 import torch
 from PIL import Image
 import torchvision.transforms.functional as TF
 from .unet import UNet
 import numpy as np
+from .printer import success
+from pathlib import Path
 
-def inference(image_path, model_path):
+def inference(image_path, model_path, output_dir):
+    '''Run inference on a single image using a trained UNet model.'''
+
+    # Set device
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
+    # Load and preprocess the image
     img = Image.open(image_path).convert("RGB")
     orig_size = img.size
 
@@ -14,15 +21,17 @@ def inference(image_path, model_path):
     img_tensor = TF.to_tensor(img_resized).unsqueeze(0).to(device)
 
     model = UNet(num_classes=1).to(device)
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
     model.eval()
 
+    # Run inference
     with torch.no_grad():
         output = model(img_tensor)
         mask = torch.sigmoid(output)
         mask = (mask > 0.5).float()
         mask = mask.squeeze(0).cpu()
     
+    # Post-process the mask and save the result
     mask_pil = TF.to_pil_image(mask)
     mask_resized = mask_pil.resize(orig_size, resample=Image.NEAREST)
 
@@ -35,6 +44,11 @@ def inference(image_path, model_path):
 
     rgba = np.dstack((img_np, alpha))
     result = Image.fromarray(rgba)
-    result.save("foreground.png")
 
-    print("Image saved")
+    if not Path(output_dir).exists():
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+    output_path = f"{output_dir}/foreground_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+    result.save(output_path)
+
+    success("Image saved")

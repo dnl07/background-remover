@@ -5,6 +5,7 @@ from pathlib import Path
 import torchvision.transforms.functional as TF
 import random
 
+# Dataset class for loading images and masks for training and validation
 class SegmentationDataset(Dataset):
     def __init__(self, images_dir, masks_dir, transform=None):
         self.images_dir = images_dir
@@ -21,8 +22,6 @@ class SegmentationDataset(Dataset):
         img_path = self.images[idx]
         mask_path = self.masks[idx]
 
-        print(img_path)
-
         image = Image.open(img_path).convert("RGB")
         mask = Image.open(mask_path).convert("L")
 
@@ -31,6 +30,7 @@ class SegmentationDataset(Dataset):
 
         return image, mask
 
+# Data augmentation for training
 class TrainTransform:
     def __call__(self, img, mask):
         # Resizing
@@ -58,6 +58,7 @@ class TrainTransform:
 
         return img, mask
 
+# Data transformation for validation (no augmentation)
 class ValidationTransform:
     def __call__(self, img, mask):
         # Resizing
