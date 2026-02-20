@@ -2,6 +2,8 @@ import torch
 from torch.utils.data import DataLoader
 from .unet import UNet
 from .dataset import SegmentationDataset, TrainTransform, ValidationTransform
+from .printer import info, warning, success
+from pathlib import Path
 
 def train(train_images_dir, train_masks_dir, val_images_dir, val_masks_dir, epochs, batch_size, learning_rate, verbose=False):
     train_dataset = SegmentationDataset(train_images_dir, train_masks_dir, TrainTransform())
@@ -11,16 +13,15 @@ def train(train_images_dir, train_masks_dir, val_images_dir, val_masks_dir, epoc
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = UNet(num_classes=1).to(device)
-    print(torch.cuda.is_available())
-    print(torch.version.cuda)
-    print(torch.backends.cudnn.enabled)
+
     if verbose:
         if (device == "cuda"):
-            print("Using GPU")
+            info("Using GPU")
         else:
-            print("Using CPU")
-           
+            warning("Using CPU")
+
+    model = UNet(num_classes=1).to(device)
+
     criterion = torch.nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -39,7 +40,7 @@ def train(train_images_dir, train_masks_dir, val_images_dir, val_masks_dir, epoc
             loss.backward()
             optimizer.step()
 
-            running_loss += loss.item() + train_images.size(0)
+            running_loss += loss.item() * train_images.size(0)
         
         epoch_loss = running_loss / len(train_loader.dataset)
 
@@ -56,7 +57,16 @@ def train(train_images_dir, train_masks_dir, val_images_dir, val_masks_dir, epoc
 
         val_loss /= len(val_loader.dataset)
 
-        print(f"Epoch [{epoch + 1}/{epochs}] - Traing-Loss: {epoch_loss:.4f} - Val-Loss: {val_loss:.4f}")
+        if verbose:
+            info(f"Epoch [{epoch + 1}/{epochs}] - Training-Loss: {epoch_loss:.4f} - Val-Loss: {val_loss:.4f}")
     
-    torch.save(model.state_dict(), "background_remover/output/unet_bg_removal.pth")
-    print("Model saved!")
+    model_path = Path("models/unet_bg_removal.pth")
+    model_path.parent.mkdir(parents=True, exist_ok=True)
+
+    i = 1
+    while model_path.exists():
+        model_path = Path(f"models/unet_bg_removal_{i}.pth")
+        i += 1
+
+    torch.save(model.state_dict(), model_path)
+    success("Model saved!")

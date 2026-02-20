@@ -4,7 +4,7 @@ import torchvision.transforms.functional as TF
 from .unet import UNet
 import numpy as np
 
-def inference(image_path, model_path, device="cuda"):
+def inference(image_path, model_path):
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     img = Image.open(image_path).convert("RGB")

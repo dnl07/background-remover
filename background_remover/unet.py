@@ -2,6 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+# UNet implementation based on the original paper
+
+# Contracting path (encoder)
 class DoubleConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
@@ -29,12 +32,13 @@ class Down(nn.Module):
         x = self.conv(x)
         return x
 
+# Expanding path (decoder)
 class Up(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
 
         self.up = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2)
-        self.conv = DoubleConv(in_channels // 2 + out_channels, out_channels)
+        self.conv = DoubleConv(out_channels * 2, out_channels)
 
     def forward(self, x1, x2):
         x1 = self.up(x1)
@@ -48,6 +52,7 @@ class Up(nn.Module):
         x = torch.cat([x2, x1], dim=1)
         return self.conv(x)
 
+# Final UNet model
 class UNet(nn.Module):
     def __init__(self, num_classes=1):
         super().__init__()

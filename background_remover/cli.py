@@ -3,24 +3,70 @@ from .train import train
 from .inference import inference
 
 def run_cli():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Train a UNet model for background removal or perform inference on an image with an existing model."
+    )
+
     subparsers = parser.add_subparsers(dest="command")
 
-    train_parser = subparsers.add_parser("train")
-    train_parser.add_argument("--epochs", type=int, default=10)
-    train_parser.add_argument("--batch", type=int, default=4)
-    train_parser.add_argument("--lr", type=float, default=1e-4)
-    train_parser.add_argument("--verbose", action="store_true")
+    # Train subcommand
+    train_parser = subparsers.add_parser("train", help="Train the UNet model")
+    train_parser.add_argument(
+        "--epochs", 
+        type=int, 
+        default=20,
+        help="Number of training epochs (default: 20)"
+    )
+    train_parser.add_argument(
+        "--batch", 
+        type=int, 
+        default=4,
+        help="Batch size for training (default: 4)"
+    )
+    train_parser.add_argument(
+        "--lr", 
+        type=float, 
+        default=1e-4,
+        help= "Learning rate for the optimizer (default: 1e-4)"
+    )
+    train_parser.add_argument(
+        "--output-dir", 
+        type=str,
+        default="./model",
+        help="Path to the output directory for saving model checkpoints (default: ./model/)"
+    )
+    train_parser.add_argument(
+        "--data-dir", 
+        type=str,
+        default="./data",
+        help="Path to the data directory (default: ./data/)"
+    )
+    train_parser.add_argument(
+        "--verbose", 
+        action="store_true",
+        help="Print training progress and device information"
+    )
 
+    # Inference subcommand
     inference_parser = subparsers.add_parser("inference")
-    inference_parser.add_argument("--image", type=str, required=True)
-    inference_parser.add_argument("--model", type=str, default="background_remover/output/unet_bg_removal.pth")
+    inference_parser.add_argument(
+        "--image", 
+        type=str, 
+        required=True,
+        help="Path to the input image for inference"
+    )
+    inference_parser.add_argument(
+        "--model", 
+        required=True,
+        type=str, 
+        help="Path to the trained UNet model (default: background_remover/output/unet_bg_removal.pth)"
+    )
 
     args = parser.parse_args()
 
     if args.command == "train":
-        train("background_remover/data/train/images", "background_remover/data/train/masks", "background_remover/data/val/images", "background_remover/data/val/masks", args.epochs, args.batch, args.lr, args.verbose)
+        train(f"{args.data_dir}/train/images", f"{args.data_dir}/train/masks", f"{args.data_dir}/val/images", f"{args.data_dir}/val/masks", args.epochs, args.batch, args.lr, args.verbose)
     elif args.command == "inference":
-        inference(args.image, args.model, "cpu" )
+        inference(args.image, args.model)
     else:
         parser.print_help()
