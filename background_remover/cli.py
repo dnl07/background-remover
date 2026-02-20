@@ -30,6 +30,11 @@ def run_cli():
         help= "Learning rate for the optimizer (default: 1e-4)"
     )
     train_parser.add_argument(
+        "--early-stopping", 
+        action="store_true",
+        help="Use early stopping during training"
+    )
+    train_parser.add_argument(
         "--output-dir", 
         type=str,
         default="./model",
@@ -71,7 +76,7 @@ def run_cli():
     args = parser.parse_args()
 
     if args.command == "train":
-        train(f"{args.data_dir}/train/images", f"{args.data_dir}/train/masks", f"{args.data_dir}/val/images", f"{args.data_dir}/val/masks", args.epochs, args.batch, args.lr, verbose=args.verbose)
+        train(f"{args.data_dir}/train/images", f"{args.data_dir}/train/masks", f"{args.data_dir}/val/images", f"{args.data_dir}/val/masks", args.epochs, args.batch, args.lr, early_stopping=args.early_stopping, verbose=args.verbose)
     elif args.command == "inference":
         inference(args.image, args.model, args.output_dir)
     else:

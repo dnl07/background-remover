@@ -5,7 +5,16 @@ from .dataset import SegmentationDataset, TrainTransform, ValidationTransform
 from .printer import info, warning, success
 from pathlib import Path
 
-def train(train_images_dir, train_masks_dir, val_images_dir, val_masks_dir, epochs, batch_size, learning_rate, verbose=False):
+def train(train_images_dir, 
+          train_masks_dir, 
+          val_images_dir, 
+          val_masks_dir, 
+          epochs, 
+          batch_size, 
+          learning_rate, 
+          early_stopping=False, 
+          verbose=False
+        ):
     '''Train the UNet model for background removal.'''
 
     # Load datasets and create data loaders
@@ -35,6 +44,11 @@ def train(train_images_dir, train_masks_dir, val_images_dir, val_masks_dir, epoc
     criterion = torch.nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
+    # early stopping
+    best_val_loss = float("inf")
+    patience = 5
+    patience_counter = 0
+    
     # Training loop
     for epoch in range(epochs):
         model.train()
@@ -68,11 +82,27 @@ def train(train_images_dir, train_masks_dir, val_images_dir, val_masks_dir, epoc
 
         val_loss /= len(val_loader.dataset)
 
+        if early_stopping:
+            if val_loss < best_val_loss:
+                best_val_loss = val_loss
+                patience_counter = 0
+            else:
+                patience_counter += 1
+
+            if patience_counter >= patience:
+                warning("Early stopping triggered")
+                save(model, "models/unet_bg_removal.pth")
+                return
+
         if verbose:
             info(f"Epoch [{epoch + 1}/{epochs}] - Training-Loss: {epoch_loss:.4f} - Val-Loss: {val_loss:.4f}")
     
     # Save the trained model
-    model_path = Path("models/unet_bg_removal.pth")
+    save(model, "models/unet_bg_removal.pth")
+
+def save(model, path):
+    '''Save the trained model to the specified path.'''
+    model_path = Path(path)
     model_path.parent.mkdir(parents=True, exist_ok=True)
 
     i = 1

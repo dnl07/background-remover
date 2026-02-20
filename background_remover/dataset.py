@@ -38,15 +38,6 @@ class TrainTransform:
         img = TF.resize(img, (512, 512), interpolation=Image.BILINEAR)
         mask = TF.resize(mask, (512, 512), interpolation=Image.NEAREST)
 
-        # Random crop
-        if random.random() < 0.7:
-            i, j, h, w = T.RandomCrop.get_params(
-                img,
-                output_size=(int(img.height * 0.8), int(img.width * 0.8))
-            )
-            img = TF.crop(img, i, j, h, w)
-            mask = TF.crop(mask, i, j, h, w)
-
         # Random brightness
         brightness = random.uniform(0.75, 1.25)
         img = TF.adjust_brightness(img, brightness)
@@ -64,7 +55,7 @@ class TrainTransform:
             img = TF.gaussian_blur(img, kernel_size=3)
 
         # Rotating randomly
-        angle = random.uniform(-90, 90)
+        angle = random.uniform(-30, 30)
         img = TF.rotate(img, angle, interpolation=Image.BILINEAR)
         mask = TF.rotate(mask, angle, interpolation=Image.NEAREST)
 
@@ -84,8 +75,8 @@ class TrainTransform:
 class ValidationTransform:
     def __call__(self, img, mask):
         # Resizing
-        img = TF.resize(img, (572, 572))
-        mask = TF.resize(mask, (572, 572))
+        img = TF.resize(img, (512, 512))
+        mask = TF.resize(mask, (512, 512))
 
         # Tensor
         img = TF.to_tensor(img)
