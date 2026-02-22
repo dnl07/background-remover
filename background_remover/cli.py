@@ -1,6 +1,7 @@
 import argparse
 from .train import train
 from .inference import inference
+import api
 
 def run_cli():
     parser = argparse.ArgumentParser(
@@ -53,7 +54,7 @@ def run_cli():
     )
 
     # Inference subcommand
-    inference_parser = subparsers.add_parser("inference")
+    inference_parser = subparsers.add_parser("inference", help="")
     inference_parser.add_argument(
         "--image", 
         type=str, 
@@ -73,11 +74,21 @@ def run_cli():
         help="Path to the output directory for saving inference results (default: ./output/)"
     )
 
+    api_parser = subparsers.add_parser("api", help="Start the FastAPI server")
+    api_parser.add_argument(
+        "--run",
+        action="store_true",
+        help=""
+    )
+
     args = parser.parse_args()
 
     if args.command == "train":
         train(f"{args.data_dir}/train/images", f"{args.data_dir}/train/masks", f"{args.data_dir}/val/images", f"{args.data_dir}/val/masks", args.epochs, args.batch, args.lr, early_stopping=args.early_stopping, verbose=args.verbose)
     elif args.command == "inference":
         inference(args.image, args.model, args.output_dir)
+    elif args.command == "api":
+        if args.run:
+            api.run()
     else:
         parser.print_help()

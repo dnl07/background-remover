@@ -13,21 +13,29 @@ It is based on the original U-Net architecture for precise segmentation and supp
 ## Installation
 If you don’t have done yet, clone this repository using ```git clone```.
 
-
 ### Without docker
 
 - Requirements:
 
     - Python 3.11+
-    - Git installed on the system
-    - pip packages (see below)
+
 - Install dependencies (with venv or another environment): ```pip install -r requirements.txt```
 
-- Run locally: python3 main.py training
+- Run locally: ```python3 main.py training```
 
 ### With docker
 
+- Build the container:
+    - ```docker build -t unet .```
 
+- Run the container:
+    - ```docker run -it unet bash```
+
+- Now you are in the bash and can run the main code:
+    - ```python3 main.py training```
+
+<em>Note: You will need to mount directories into the container if you need external ones,
+do it with ```-v "path/to/data:/data"``` and use it then with /data </em>
 ## Usage
 
 ### CLI
