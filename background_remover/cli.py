@@ -1,7 +1,7 @@
 import argparse
 from .train import train
-from .inference import inference
-import api
+from .inference import inference, save_images
+from .api import main
 
 def run_cli():
     parser = argparse.ArgumentParser(
@@ -39,13 +39,18 @@ def run_cli():
         "--output-dir", 
         type=str,
         default="./model",
-        help="Path to the output directory for saving model checkpoints (default: ./model/)"
+        help="Path to the output directory for saving model checkpoints (default: ./model)"
     )
     train_parser.add_argument(
         "--data-dir", 
         type=str,
         default="./data",
         help="Path to the data directory (default: ./data/)"
+    )
+    train_parser.add_argument(
+        "--resume-from", 
+        type=str,
+        help="Path to a model checkpoint to resume training from (default: None)"
     )
     train_parser.add_argument(
         "--verbose", 
@@ -65,30 +70,40 @@ def run_cli():
         "--model", 
         required=True,
         type=str, 
-        help="Path to the trained UNet model (default: background_remover/output/unet_bg_removal.pth)"
+        help="Path to the trained UNet model (default: models/unet_bg_removal.pth)"
     )
     inference_parser.add_argument(
         "--output-dir", 
         type=str,
         default="./output",
-        help="Path to the output directory for saving inference results (default: ./output/)"
+        help="Path to the output directory for saving inference results (default: ./output)"
     )
 
     api_parser = subparsers.add_parser("api", help="Start the FastAPI server")
     api_parser.add_argument(
         "--run",
         action="store_true",
-        help=""
+        help="Run the FastAPI server for inference (default: False)"
     )
 
     args = parser.parse_args()
 
     if args.command == "train":
-        train(f"{args.data_dir}/train/images", f"{args.data_dir}/train/masks", f"{args.data_dir}/val/images", f"{args.data_dir}/val/masks", args.epochs, args.batch, args.lr, early_stopping=args.early_stopping, verbose=args.verbose)
+        train(f"{args.data_dir}/train/images", 
+              f"{args.data_dir}/train/masks", 
+              f"{args.data_dir}/val/images", 
+              f"{args.data_dir}/val/masks", 
+              args.epochs, 
+              args.batch, 
+              args.lr, 
+              early_stopping=args.early_stopping, 
+              resume_from=args.resume_from,
+              verbose=args.verbose)
     elif args.command == "inference":
-        inference(args.image, args.model, args.output_dir)
+        img, mask = inference(args.image, args.model)
+        save_images(args.output_dir, img, mask)
     elif args.command == "api":
         if args.run:
-            api.run()
+            main.run()
     else:
         parser.print_help()

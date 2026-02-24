@@ -13,6 +13,7 @@ def train(train_images_dir,
           batch_size, 
           learning_rate, 
           early_stopping=False, 
+          resume_from=None,
           verbose=False
         ):
     '''Train the UNet model for background removal.'''
@@ -31,7 +32,7 @@ def train(train_images_dir,
         info(f"Found {len(val_dataset)} validation samples")
 
     # Set device
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     if verbose:
         if (device == "cuda"):
@@ -41,6 +42,12 @@ def train(train_images_dir,
 
     # Initialize model, loss function, and optimizer
     model = UNet(num_classes=1).to(device)
+
+    if resume_from:
+        model.load_state_dict(torch.load(resume_from, map_location=device))
+        if verbose:
+            info(f"Resumed training from {resume_from}")
+
     criterion = torch.nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -48,7 +55,10 @@ def train(train_images_dir,
     best_val_loss = float("inf")
     patience = 5
     patience_counter = 0
-    
+
+    if verbose:
+        info("Training is starting...")
+
     # Training loop
     for epoch in range(epochs):
         model.train()

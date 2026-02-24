@@ -7,7 +7,7 @@ import numpy as np
 from .printer import success
 from pathlib import Path
 
-def inference(image_path, model_path, output_dir):
+def inference(image_path, model_path):
     '''Run inference on a single image using a trained UNet model.'''
 
     # Set device
@@ -45,10 +45,14 @@ def inference(image_path, model_path, output_dir):
     rgba = np.dstack((img_np, alpha))
     result = Image.fromarray(rgba)
 
+    return result, mask_resized
+
+def save_images(output_dir, image, mask):
     if not Path(output_dir).exists():
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-    output_path = f"{output_dir}/foreground_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
-    result.save(output_path)
-
+    image_path = f"{output_dir}/foreground_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+    image.save(image_path)
+    mask_path = f"{output_dir}/mask_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+    mask.save(mask_path)
     success("Image saved")
