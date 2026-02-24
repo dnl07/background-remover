@@ -57,6 +57,18 @@ def run_cli():
         action="store_true",
         help="Print training progress and device information"
     )
+    train_parser.add_argument(
+        "--data-type",
+        choices=( "flat", "split"),
+        default="flat",
+        help="Data directory structure: 'split' expects data/train|val/images|masks, 'flat' expects data/images|masks and auto-splits (default: flat)"
+    )
+    train_parser.add_argument(
+        "--val-split",
+        type=float,
+        default=0.2,
+        help="Fraction of data to use for validation when --data-type=flat (default: 0.2)"
+    )
 
     # Inference subcommand
     inference_parser = subparsers.add_parser("inference", help="")
@@ -70,7 +82,7 @@ def run_cli():
         "--model", 
         required=True,
         type=str, 
-        help="Path to the trained UNet model (default: models/unet_bg_removal.pth)"
+        help="Path to the trained UNet model"
     )
     inference_parser.add_argument(
         "--output-dir", 
@@ -89,16 +101,29 @@ def run_cli():
     args = parser.parse_args()
 
     if args.command == "train":
-        train(f"{args.data_dir}/train/images", 
-              f"{args.data_dir}/train/masks", 
-              f"{args.data_dir}/val/images", 
-              f"{args.data_dir}/val/masks", 
-              args.epochs, 
-              args.batch, 
-              args.lr, 
-              early_stopping=args.early_stopping, 
-              resume_from=args.resume_from,
-              verbose=args.verbose)
+        if args.data_type == "split":
+            train(f"{args.data_dir}/train/images", 
+                  f"{args.data_dir}/train/masks", 
+                  f"{args.data_dir}/val/images", 
+                  f"{args.data_dir}/val/masks", 
+                  args.epochs, 
+                  args.batch, 
+                  args.lr, 
+                  early_stopping=args.early_stopping, 
+                  resume_from=args.resume_from,
+                  verbose=args.verbose)
+        else:
+            train(f"{args.data_dir}/images", 
+                  f"{args.data_dir}/masks", 
+                  None,
+                  None,
+                  args.epochs, 
+                  args.batch, 
+                  args.lr, 
+                  early_stopping=args.early_stopping, 
+                  resume_from=args.resume_from,
+                  verbose=args.verbose,
+                  val_split=args.val_split)
     elif args.command == "inference":
         img, mask = inference(args.image, args.model)
         save_images(args.output_dir, img, mask)
