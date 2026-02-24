@@ -26,8 +26,8 @@ def split_flat(train_images_dir: str,
     train_subset = Subset(train_dataset, train_indices.indices)
     val_subset = Subset(val_dataset, val_indices.indices)
 
-    train_loader = DataLoader(train_subset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_subset, batch_size=batch_size, shuffle=False)
+    train_loader = DataLoader(train_subset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
+    val_loader = DataLoader(val_subset, batch_size=batch_size, shuffle=False,  num_workers=4, pin_memory=True)
 
     if verbose:
         info(f"Auto-split: {len(train_subset)} training / {len(val_subset)} validation samples")
@@ -51,13 +51,13 @@ def train(train_images_dir: str,
     if val_images_dir and val_masks_dir:
         # Pre-split mode: separate train/val directories
         train_dataset = SegmentationDataset(train_images_dir, train_masks_dir, TrainTransform())
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
 
         if verbose:
             info(f"Found {len(train_dataset)} training samples")
 
         val_dataset = SegmentationDataset(val_images_dir, val_masks_dir, ValidationTransform())
-        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
 
         if verbose:
             info(f"Found {len(val_dataset)} validation samples")
@@ -68,7 +68,7 @@ def train(train_images_dir: str,
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     if verbose:
-        if (device == "cuda"):
+        if (device.type == "cuda"):
             info("Using GPU")
         else:
             warning("Using CPU")
@@ -139,9 +139,19 @@ def train(train_images_dir: str,
 
         if verbose:
             info(f"Epoch [{epoch + 1}/{epochs}] - Training-Loss: {epoch_loss:.4f} - Val-Loss: {val_loss:.4f}")
+
+        # Save checkpoint after each epoch (overwritten each time as a backup)
+        checkpoint_path = Path("models/unet_checkpoint.pth")
+        checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+        torch.save(model.state_dict(), checkpoint_path)
     
-    # Save the trained model
+    # Save the final trained model
     save(model, "models/unet_bg_removal.pth")
+
+    # Remove checkpoint after successful save
+    checkpoint_path = Path("models/unet_checkpoint.pth")
+    if checkpoint_path.exists():
+        checkpoint_path.unlink()
 
 def save(model, path):
     '''Save the trained model to the specified path.'''
@@ -154,4 +164,4 @@ def save(model, path):
         i += 1
 
     torch.save(model.state_dict(), model_path)
-    success("Model saved!")
+    success(f"Model {model_path} saved!")

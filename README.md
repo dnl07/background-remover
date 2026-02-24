@@ -53,6 +53,8 @@ Training is performed exclusively via the command line:
 - ```--data-type```: Data directory structure (more below)
 - ```--val-split```: Fraction of data to use for validation when --data-type=flat (default: 0.2)
 
+<em>Note: After each epoch, a checkpoint is saved in ```models/``` as a backup in case training fails. This temporary checkpoint will be deleted once the final model is successfully saved. If training stops unexpectedly and you want to resume, use this checkpoint with ```--resume-from```.</em>
+
 ### Dataset Structure
 
 **When using ```--data-type flat```:**
