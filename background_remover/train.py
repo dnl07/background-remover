@@ -77,7 +77,7 @@ def train(train_images_dir: str,
     model = UNet(num_classes=1).to(device)
 
     if resume_from:
-        model.load_state_dict(torch.load(resume_from, map_location=device))
+        model.load_state_dict(torch.load(resume_from, map_location=device, weights_only=False))
         if verbose:
             info(f"Resumed training from {resume_from}")
 

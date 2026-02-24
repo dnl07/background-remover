@@ -38,6 +38,14 @@ class TrainTransform:
         img = TF.resize(img, (512, 512), interpolation=Image.BILINEAR)
         mask = TF.resize(mask, (512, 512), interpolation=Image.NEAREST)
 
+        # 2. Random crop
+        if random.random() < 0.4:
+            i, j, h, w = T.RandomCrop.get_params(img, output_size=(450, 450))
+            img = TF.crop(img, i, j, h, w)
+            mask = TF.crop(mask, i, j, h, w)
+            img = TF.resize(img, (512, 512), interpolation=Image.BILINEAR)
+            mask = TF.resize(mask, (512, 512), interpolation=Image.NEAREST)
+
         # Random brightness
         brightness = random.uniform(0.75, 1.25)
         img = TF.adjust_brightness(img, brightness)
@@ -54,10 +62,20 @@ class TrainTransform:
         if random.random() < 0.3:
             img = TF.gaussian_blur(img, kernel_size=3)
 
-        # Rotating randomly
-        angle = random.uniform(-30, 30)
-        img = TF.rotate(img, angle, interpolation=Image.BILINEAR)
-        mask = TF.rotate(mask, angle, interpolation=Image.NEAREST)
+        # Random affine
+        angle = random.uniform(-20, 20)
+        translate = (random.uniform(-0.05, 0.05), random.uniform(-0.05, 0.05))
+        scale = random.uniform(0.9, 1.1)
+        shear = random.uniform(-5, 5)
+
+        img = TF.affine(img, angle, translate, scale, shear, interpolation=Image.BILINEAR)
+        mask = TF.affine(mask, angle, translate, scale, shear, interpolation=Image.NEAREST)
+
+        # Perspective warp
+        if random.random() < 0.2:
+            startpoints, endpoints = T.RandomPerspective.get_params(512, 512, distortion_scale=0.4)
+            img = TF.perspective(img, startpoints, endpoints)
+            mask = TF.perspective(mask, startpoints, endpoints)
 
         # Random horizontal flip
         if random.random() < 0.5:
