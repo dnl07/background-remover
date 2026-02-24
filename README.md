@@ -1,25 +1,24 @@
 # background-remover
 
-A flexible tool for background removal that can be trained on custom datasets.
-It is based on the original U-Net architecture for precise segmentation and supports both API and CLI usage, making it easy to integrate into various applications. 
+A flexible and customizable tool for background removal, based on the original U-Net structure. It supports training on your own datasets, provides multiple data-loading modes, and offers both CLI and API interfaces for integration into any workflow.
 
 ## Features
 
-- U-Net Based
-- Data augmentation
-- Custom Training
-- API & CLI
+- **U-Net** architecture for segmentation
+- **Custom training** support for your own datasets (flat or split directory structures)
+- **Data augmentation** built-in for more robust models
+- **CLI** tools for training, inference, and dataset handling
+- **REST API** for real-time inference, returning results as ZIP files (cropped image + mask)
 
 ## Installation
-If you don’t have done yet, clone this repository using ```git clone```.
+If you have not done so already, clone this repository using ```git clone```.
 
 ### Without docker
 
 - Requirements:
-
     - Python 3.11+
 
-- Install dependencies (with venv or another environment): ```pip install -r requirements.txt```
+- Install dependencies (using a virtual environment or another environment): ```pip install -r requirements.txt```
 
 - Run locally: ```python3 main.py training```
 
@@ -31,35 +30,47 @@ If you don’t have done yet, clone this repository using ```git clone```.
 - Run the container:
     - ```docker run -it unet bash```
 
-- Now you are in the bash and can run the main code:
+- You are now inside the container and can run the main script:
     - ```python3 main.py training```
 
-<em>Note: You will need to mount directories into the container if you need external ones,
-do it with ```-v "path/to/data:/data"``` and use it then with /data </em>
+<em>Note: If you need to use external directories inside the container, mount them with ```-v "path/to/data:/data"``` and access them via ```/data```. </em>
+
 ## Usage
-
-### CLI
-
-The tool can be controlled through command-line arguments. Below is an overview of all available options:
-
-Training:
-- ```--epochs```: Number of training epochs (default: 20)
-- ```--batch```: Batch size for training (default: 4)
-- ```--lr```: Learning rate for the optimizer (default: 1e-4)
-- ```--output-dir```: Path to the output directory for saving model checkpoints (default: ./model/)
-- ```--data-dir```: Path to the data directory (default: ./data/)
-- ```--verbose```: Print training progress
-
-Inference:
-- ```--image```: Path to the input image for inference
-- ```--model```: Path to the trained UNet model (default: background_remover/output/unet_bg_removal.pth)
-- ```--output-dir```: Path to the output directory for saving inference results (default: ./output/)
-
-### API
 
 ### Training
 
-Needs this folder structure:
+Training is performed exclusively via the command line:
+
+**Available arguments:**
+- ```--epochs```: Number of training epochs (default: 20)
+- ```--batch```: Batch size for training (default: 4)
+- ```--lr```: Learning rate for the optimizer (default: 1e-4)
+- ```--early-stopping```: Use early stopping during training
+- ```--output-dir```: Path to the output directory for saving model checkpoints (default: ./model)
+- ```--data-dir```: Path to the data directory (default: ./data)
+- ```--resume-from```: Path to a model checkpoint to resume training from (default: None)
+- ```--verbose```: Print training progress
+- ```--data-type```: Data directory structure (more below)
+- ```--val-split```: Fraction of data to use for validation when --data-type=flat (default: 0.2)
+
+### Dataset Structure
+
+**When using ```--data-type flat```:**
+
+Use the following simplified structure:
+
+```
+data/
+├───images
+└───masks
+```
+
+The validation split will be created automatically using ```--val-split```.
+
+**When using ```--data-type split```:**
+
+The dataset must follow this structure:
+
 ```
 data/
 ├───train
@@ -69,6 +80,38 @@ data/
     ├───images
     └───masks
 ```
-Image names should be numbers (1,2,3,4,5,6.png)
+Image and mask filenames should be numeric (e.g., ```1.png```, ```2.png```, ```3.png```).
+
+### Inference
+
+**Via CLI:**
+
+- ```--image```: Path to the input image used for inference
+- ```--model```: Path to the trained UNet model
+- ```--output-dir```: Path to the output directory for saving inference results (default: ./output)
+
+**Via API:**
+
+To start the API server, run:
+- ```python3 main.py api --run```
+
+Endpoint:
+- ```/inference?model=model_name```
+
+The API accepts an uploaded image (e.g., as multipart/form-data). The response is a ZIP file containing:
+- image.png – the cropped input image used for inference
+- mask.png – the predicted segmentation mask
 
 ## References
+
+```bibtex
+@misc{ronneberger2015unetconvolutionalnetworksbiomedical,
+      title={U-Net: Convolutional Networks for Biomedical Image Segmentation}, 
+      author={Olaf Ronneberger and Philipp Fischer and Thomas Brox},
+      year={2015},
+      eprint={1505.04597},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/1505.04597}, 
+}
+```

@@ -76,7 +76,7 @@ def run_cli():
         "--image", 
         type=str, 
         required=True,
-        help="Path to the input image for inference"
+        help="Path to the input image used for inference"
     )
     inference_parser.add_argument(
         "--model", 
