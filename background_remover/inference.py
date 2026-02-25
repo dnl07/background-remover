@@ -1,5 +1,6 @@
 from datetime import datetime
 import torch
+from typing import Optional 
 from PIL import Image
 import torchvision.transforms.functional as TF
 from .unet import UNet
@@ -47,7 +48,7 @@ def inference(image_path, model_path, with_mask):
 
     return result, mask_resized
 
-def save_images(output_dir, image, mask: any | None):
+def save_images(output_dir, image, mask: Optional[Image.Image]):
     if not Path(output_dir).exists():
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 

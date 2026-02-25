@@ -42,5 +42,5 @@ async def upload(model: str, file: UploadFile = File(...)):
         headers={"Content-Disposition": "attachment; filename=response.zip"}
     )
 
-def run():
-    uvicorn.run("background_remover.api.main:app", host="0.0.0.0", port=8080, reload=True)
+def run(host: str, port: int, reload: bool):
+    uvicorn.run("background_remover.api.main:app", host=host, port=port, reload=reload)

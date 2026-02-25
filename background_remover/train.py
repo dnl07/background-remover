@@ -103,7 +103,7 @@ def train(train_images_dir: str,
 
     # early stopping
     best_val_loss = float("inf")
-    patience = 5
+    patience = 10
     patience_counter = 0
 
     if verbose:
@@ -145,6 +145,7 @@ def train(train_images_dir: str,
         scheduler.step()
 
         if early_stopping:
+            # TODO: SAVE BEST MODEL
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 patience_counter = 0
@@ -161,7 +162,7 @@ def train(train_images_dir: str,
 
         if verbose:
             lr = optimizer.param_groups[0]["lr"]
-            info(f"Epoch [{epoch + 1}/{epochs}] - Training-Loss: {epoch_loss:.4f} - Val-Loss: {val_loss:.4f} - LR: {lr}")
+            info(f"Epoch [{epoch + 1}/{epochs}] - Training-Loss: {epoch_loss:.4f} - Val-Loss: {val_loss:.4f} - LR: {round(lr, 9)}")
 
         # Save checkpoint after each epoch (overwritten each time as a backup)
         checkpoint_path = Path("models/unet_checkpoint.pth")

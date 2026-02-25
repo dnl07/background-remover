@@ -98,7 +98,19 @@ def run_cli():
 
     api_parser = subparsers.add_parser("api", help="Start the FastAPI server")
     api_parser.add_argument(
-        "--run",
+        "--host", 
+        type=str,
+        default="127.0.0.1",
+        help=""
+    )
+    api_parser.add_argument(
+        "--port", 
+        type=int,
+        default=8080,
+        help=""
+    )
+    api_parser.add_argument(
+        "--reload",
         action="store_true",
         help="Run the FastAPI server for inference (default: False)"
     )
@@ -137,7 +149,6 @@ def run_cli():
             save_images(args.output_dir, img)
 
     elif args.command == "api":
-        if args.run:
-            main.run()
+        main.run(args.host, args.port, args.reload)
     else:
         parser.print_help()
