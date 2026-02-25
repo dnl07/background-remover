@@ -20,7 +20,7 @@ If you have not done so already, clone this repository using ```git clone```.
 
 - Install dependencies (using a virtual environment or another environment): ```pip install -r requirements.txt```
 
-- Run locally: ```python3 main.py training```
+- Run locally: ```python3 main.py -h```
 
 ### With docker
 
@@ -31,7 +31,7 @@ If you have not done so already, clone this repository using ```git clone```.
     - ```docker run -it unet bash```
 
 - You are now inside the container and can run the main script:
-    - ```python3 main.py training```
+    - ```python3 main.py -h```
 
 <em>Note: If you need to use external directories inside the container, mount them with ```-v "path/to/data:/data"``` and access them via ```/data```. </em>
 
@@ -41,17 +41,19 @@ If you have not done so already, clone this repository using ```git clone```.
 
 Training is performed exclusively via the command line:
 
+Run: ```python3 main.py train```
+
 **Available arguments:**
 - ```--epochs```: Number of training epochs (default: 20)
 - ```--batch```: Batch size for training (default: 4)
-- ```--lr```: Learning rate for the optimizer (default: 1e-4)
+- ```--lr```: Learning rate for the optimizer (default: 1e-3)
 - ```--early-stopping```: Use early stopping during training
-- ```--output-dir```: Path to the output directory for saving model checkpoints (default: ./model)
+- ```--output-dir```: Path to the output directory for saving models (default: ./model)
 - ```--data-dir```: Path to the data directory (default: ./data)
 - ```--resume-from```: Path to a model checkpoint to resume training from (default: None)
 - ```--verbose```: Print training progress
 - ```--data-type```: Data directory structure (more below)
-- ```--val-split```: Fraction of data to use for validation when --data-type=flat (default: 0.2)
+- ```--val-split```: Fraction of data to use for validation when ```--data-type flat``` (default: 0.2)
 
 <em>Note: After each epoch, a checkpoint is saved in ```models/``` as a backup in case training fails. This temporary checkpoint will be deleted once the final model is successfully saved. If training stops unexpectedly and you want to resume, use this checkpoint with ```--resume-from```.</em>
 
@@ -86,19 +88,31 @@ Image and mask filenames should be numeric (e.g., ```1.png```, ```2.png```, ```3
 
 ### Inference
 
+
 **Via CLI:**
 
+Run: ```python3 main.py inference```
+
+**Available arguments:**
 - ```--image```: Path to the input image used for inference
 - ```--model```: Path to the trained UNet model
 - ```--output-dir```: Path to the output directory for saving inference results (default: ./output)
+- ```--with-mask```: Save the predicted mask alongside the cropped image
 
 **Via API:**
 
 To start the API server, run:
-- ```python3 main.py api --run```
+- ```python3 main.py api```
+
+Available arguments:
+- ```--host```: Host address for the API server (default: 127.0.0.1)
+- ```--port```: Port number for the API server (default: 8080)
+- ```--reload```: Enable auto-reload for development (default: False)
 
 Endpoint:
 - ```/inference?model=model_name```
+
+<em>Note: Models should be saved in the ```models/``` directory.</em>
 
 The API accepts an uploaded image (e.g., as multipart/form-data). The response is a ZIP file containing:
 - image.png – the cropped input image used for inference

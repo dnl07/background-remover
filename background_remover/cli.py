@@ -27,8 +27,8 @@ def run_cli():
     train_parser.add_argument(
         "--lr", 
         type=float, 
-        default=1e-4,
-        help= "Learning rate for the optimizer (default: 1e-4)"
+        default=1e-3,
+        help= "Learning rate for the optimizer (default: 1e-3)"
     )
     train_parser.add_argument(
         "--early-stopping", 
