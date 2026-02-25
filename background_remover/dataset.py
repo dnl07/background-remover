@@ -38,7 +38,7 @@ class TrainTransform:
         img = TF.resize(img, (512, 512), interpolation=Image.BILINEAR)
         mask = TF.resize(mask, (512, 512), interpolation=Image.NEAREST)
 
-        # 2. Random crop
+        # Random crop
         if random.random() < 0.4:
             i, j, h, w = T.RandomCrop.get_params(img, output_size=(450, 450))
             img = TF.crop(img, i, j, h, w)

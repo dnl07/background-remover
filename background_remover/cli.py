@@ -96,6 +96,7 @@ def run_cli():
         help=""
     )
 
+    # API subcommand
     api_parser = subparsers.add_parser("api", help="Start the FastAPI server")
     api_parser.add_argument(
         "--host", 

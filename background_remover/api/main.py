@@ -12,16 +12,21 @@ app = FastAPI()
 
 @app.post("/inference")
 async def upload(model: str, file: UploadFile = File(...)):
+    '''Endpoint to perform inference on an uploaded image using a specified model.'''
+
+    # Save the uploaded file to a temporary location
     with tempfile.NamedTemporaryFile(delete=False) as tmp:
         tmp_path = tmp.name
 
         with file.file as upload:
             shutil.copyfileobj(upload, tmp)
-    
+
+    # Determine the path to the model file
     base_dir = Path(__file__).parent.parent.parent.resolve()
     print(base_dir)
     model_path = base_dir / "models" / f"{model}.pth"
 
+    # Perform inference
     img, mask = inference(tmp_path, model_path)
 
     # Convert images to zip
@@ -30,6 +35,7 @@ async def upload(model: str, file: UploadFile = File(...)):
         image.save(b, format="PNG")
         return b.getvalue()
 
+    # Create a zip file in memory containing the image and mask
     buffer = BytesIO()
     with zipfile.ZipFile(buffer, "w") as z:
         z.writestr("image.png", image_to_bytes(img))
@@ -43,4 +49,5 @@ async def upload(model: str, file: UploadFile = File(...)):
     )
 
 def run(host: str, port: int, reload: bool):
+    '''Run the FastAPI application using Uvicorn.'''
     uvicorn.run("background_remover.api.main:app", host=host, port=port, reload=reload)

@@ -21,6 +21,7 @@ def inference(image_path, model_path, with_mask):
     img_resized = TF.resize(img, (572, 572))
     img_tensor = TF.to_tensor(img_resized).unsqueeze(0).to(device)
 
+    # Load the model
     model = UNet(num_classes=1).to(device)
     model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
     model.eval()
@@ -49,9 +50,12 @@ def inference(image_path, model_path, with_mask):
     return result, mask_resized
 
 def save_images(output_dir, image, mask: Optional[Image.Image]):
+    '''Save the inferred image and mask to the specified output directory.'''
+
     if not Path(output_dir).exists():
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
+    # Save the image and mask with unique filenames
     image_path = f"{output_dir}/foreground_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
     image.save(image_path)
     if mask:

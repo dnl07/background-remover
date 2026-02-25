@@ -1,3 +1,4 @@
+import sys
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, random_split, Subset
@@ -5,51 +6,6 @@ from .unet import UNet
 from .dataset import SegmentationDataset, TrainTransform, ValidationTransform
 from .printer import info, warning, success
 from pathlib import Path
-
-def split_flat(train_images_dir: str, 
-          train_masks_dir: str, 
-          batch_size: int, 
-          verbose=False,
-          val_split=0.2          
-        ):
-    # Flat mode: auto-split into train/val
-    full_dataset = SegmentationDataset(train_images_dir, train_masks_dir, transform=None)
-    total = len(full_dataset)
-    val_size = int(total * val_split)
-    train_size = total - val_size
-
-    generator = torch.Generator().manual_seed(42)
-    train_indices, val_indices = random_split(range(total), [train_size, val_size], generator=generator)
-
-    train_dataset = SegmentationDataset(train_images_dir, train_masks_dir, TrainTransform())
-    val_dataset = SegmentationDataset(train_images_dir, train_masks_dir, ValidationTransform())
-
-    train_subset = Subset(train_dataset, train_indices.indices)
-    val_subset = Subset(val_dataset, val_indices.indices)
-
-    train_loader = DataLoader(train_subset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
-    val_loader = DataLoader(val_subset, batch_size=batch_size, shuffle=False,  num_workers=4, pin_memory=True)
-
-    if verbose:
-        info(f"Auto-split: {len(train_subset)} training / {len(val_subset)} validation samples")
-
-    return train_loader, val_loader
-
-def dice_loss(pred, target, smooth=1e-6):
-    pred = torch.sigmoid(pred)
-    pred = pred.contiguous()
-    target = target.contiguous()
-
-    intersection = (pred * target).sum(dim=(2, 3))
-    union = pred.sum(dim=(2, 3)) + target.sum(dim=(2, 3))
-
-    dice = (2.0 * intersection + smooth) / (union + smooth)
-    return 1 - dice.mean()
-
-def hybrid_loss(pred, target):
-    bce = F.binary_cross_entropy_with_logits(pred, target)
-    dice = dice_loss(pred, target)
-    return 0.5 * bce + 0.5 * dice
 
 def train(train_images_dir: str, 
           train_masks_dir: str, 
@@ -102,6 +58,7 @@ def train(train_images_dir: str,
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, epochs, 1e-6)
 
     # early stopping
+    best_model = None
     best_val_loss = float("inf")
     patience = 10
     patience_counter = 0
@@ -144,11 +101,12 @@ def train(train_images_dir: str,
 
         scheduler.step()
 
+        # Early stopping logic
         if early_stopping:
-            # TODO: SAVE BEST MODEL
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 patience_counter = 0
+                best_model = model.state_dict()
             else:
                 patience_counter += 1
 
@@ -157,8 +115,8 @@ def train(train_images_dir: str,
                 checkpoint_path = Path("models/unet_checkpoint.pth")
                 if checkpoint_path.exists():
                     checkpoint_path.unlink()
-                save(model, "models/unet_bg_removal.pth")
-                return
+                save(best_model, "models/unet_bg_removal.pth")
+                sys.exit(0)
 
         if verbose:
             lr = optimizer.param_groups[0]["lr"]
@@ -168,7 +126,7 @@ def train(train_images_dir: str,
         checkpoint_path = Path("models/unet_checkpoint.pth")
         checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
         torch.save(model.state_dict(), checkpoint_path)
-    
+
     # Save the final trained model
     save(model, "models/unet_bg_removal.pth")
 
@@ -177,11 +135,67 @@ def train(train_images_dir: str,
     if checkpoint_path.exists():
         checkpoint_path.unlink()
 
+def split_flat(train_images_dir: str, 
+          train_masks_dir: str, 
+          batch_size: int, 
+          verbose=False,
+          val_split=0.2          
+        ):
+    '''Split a flat dataset into training and validation sets,'''
+
+    # Load the full dataset and split into train/val subsets
+    full_dataset = SegmentationDataset(train_images_dir, train_masks_dir, transform=None)
+    total = len(full_dataset)
+    val_size = int(total * val_split)
+    train_size = total - val_size
+
+    # Use a fixed random seed for reproducibility
+    generator = torch.Generator().manual_seed(42)
+    train_indices, val_indices = random_split(range(total), [train_size, val_size], generator=generator)
+
+    # Create separate datasets for train and val with appropriate transforms
+    train_dataset = SegmentationDataset(train_images_dir, train_masks_dir, TrainTransform())
+    val_dataset = SegmentationDataset(train_images_dir, train_masks_dir, ValidationTransform())
+
+    train_subset = Subset(train_dataset, train_indices.indices)
+    val_subset = Subset(val_dataset, val_indices.indices)
+
+    train_loader = DataLoader(train_subset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
+    val_loader = DataLoader(val_subset, batch_size=batch_size, shuffle=False,  num_workers=4, pin_memory=True)
+
+    if verbose:
+        info(f"Auto-split: {len(train_subset)} training / {len(val_subset)} validation samples")
+
+    return train_loader, val_loader
+
+def dice_loss(pred, target, smooth=1e-6):
+    '''Calculate the Dice loss between the predicted mask and the target mask.'''
+
+    pred = torch.sigmoid(pred)
+    pred = pred.contiguous()
+    target = target.contiguous()
+
+    # Calculate intersection and union for Dice coefficient
+    intersection = (pred * target).sum(dim=(2, 3))
+    union = pred.sum(dim=(2, 3)) + target.sum(dim=(2, 3))
+
+    dice = (2.0 * intersection + smooth) / (union + smooth)
+    return 1 - dice.mean()
+
+def hybrid_loss(pred, target):
+    '''Calculate a hybrid loss combining Binary Cross-Entropy and Dice loss.'''
+
+    bce = F.binary_cross_entropy_with_logits(pred, target)
+    dice = dice_loss(pred, target)
+    return 0.5 * bce + 0.5 * dice
+
 def save(model, path):
     '''Save the trained model to the specified path.'''
+
     model_path = Path(path)
     model_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Ensure we don't overwrite an existing model
     i = 1
     while model_path.exists():
         model_path = Path(f"models/unet_bg_removal_{i}.pth")
