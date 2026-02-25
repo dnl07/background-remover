@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 from torch.utils.data import DataLoader, random_split, Subset
 from .unet import UNet
 from .dataset import SegmentationDataset, TrainTransform, ValidationTransform
@@ -33,6 +34,22 @@ def split_flat(train_images_dir: str,
         info(f"Auto-split: {len(train_subset)} training / {len(val_subset)} validation samples")
 
     return train_loader, val_loader
+
+def dice_loss(pred, target, smooth=1e-6):
+    pred = torch.sigmoid(pred)
+    pred = pred.contiguous()
+    target = target.contiguous()
+
+    intersection = (pred * target).sum(dim=(2, 3))
+    union = pred.sum(dim=(2, 3)) + target.sum(dim=(2, 3))
+
+    dice = (2.0 * intersection + smooth) / (union + smooth)
+    return 1 - dice.mean()
+
+def hybrid_loss(pred, target):
+    bce = F.binary_cross_entropy_with_logits(pred, target)
+    dice = dice_loss(pred, target)
+    return 0.5 * bce + 0.5 * dice
 
 def train(train_images_dir: str, 
           train_masks_dir: str, 
@@ -73,16 +90,16 @@ def train(train_images_dir: str,
         else:
             warning("Using CPU")
 
-    # Initialize model, loss function, and optimizer
+    # Initialize model, optimizer and scheduler
     model = UNet(num_classes=1).to(device)
 
     if resume_from:
         model.load_state_dict(torch.load(resume_from, map_location=device, weights_only=False))
         if verbose:
             info(f"Resumed training from {resume_from}")
-
-    criterion = torch.nn.BCEWithLogitsLoss()
+        
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, epochs, 1e-6)
 
     # early stopping
     best_val_loss = float("inf")
@@ -102,7 +119,7 @@ def train(train_images_dir: str,
             train_masks = train_masks.to(device)
 
             preds = model(train_images)
-            loss = criterion(preds, train_masks)
+            loss = hybrid_loss(preds, train_masks)
 
             optimizer.zero_grad()
             loss.backward()
@@ -120,10 +137,12 @@ def train(train_images_dir: str,
                 val_masks = val_masks.to(device)
 
                 val_preds = model(val_images)
-                loss = criterion(val_preds, val_masks)
+                loss = hybrid_loss(val_preds, val_masks)
                 val_loss += loss.item() * val_images.size(0)
 
         val_loss /= len(val_loader.dataset)
+
+        scheduler.step()
 
         if early_stopping:
             if val_loss < best_val_loss:
@@ -134,11 +153,15 @@ def train(train_images_dir: str,
 
             if patience_counter >= patience:
                 warning("Early stopping triggered")
+                checkpoint_path = Path("models/unet_checkpoint.pth")
+                if checkpoint_path.exists():
+                    checkpoint_path.unlink()
                 save(model, "models/unet_bg_removal.pth")
                 return
 
         if verbose:
-            info(f"Epoch [{epoch + 1}/{epochs}] - Training-Loss: {epoch_loss:.4f} - Val-Loss: {val_loss:.4f}")
+            lr = optimizer.param_groups[0]["lr"]
+            info(f"Epoch [{epoch + 1}/{epochs}] - Training-Loss: {epoch_loss:.4f} - Val-Loss: {val_loss:.4f} - LR: {lr}")
 
         # Save checkpoint after each epoch (overwritten each time as a backup)
         checkpoint_path = Path("models/unet_checkpoint.pth")

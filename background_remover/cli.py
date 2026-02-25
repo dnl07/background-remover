@@ -90,6 +90,11 @@ def run_cli():
         default="./output",
         help="Path to the output directory for saving inference results (default: ./output)"
     )
+    inference_parser.add_argument(
+        "--with-mask", 
+        action="store_true",
+        help=""
+    )
 
     api_parser = subparsers.add_parser("api", help="Start the FastAPI server")
     api_parser.add_argument(
@@ -126,7 +131,11 @@ def run_cli():
                   val_split=args.val_split)
     elif args.command == "inference":
         img, mask = inference(args.image, args.model)
-        save_images(args.output_dir, img, mask)
+        if args.with_mask:
+            save_images(args.output_dir, img, mask)
+        else:
+            save_images(args.output_dir, img)
+
     elif args.command == "api":
         if args.run:
             main.run()
