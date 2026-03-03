@@ -143,12 +143,11 @@ def run_cli():
                   verbose=args.verbose,
                   val_split=args.val_split)
     elif args.command == "inference":
-        img, mask = inference(args.image, args.model)
+        img, mask = inference(args.image, args.model, args.with_mask)
         if args.with_mask:
             save_images(args.output_dir, img, mask)
         else:
-            save_images(args.output_dir, img)
-
+            save_images(args.output_dir, img, None)
     elif args.command == "api":
         main.run(args.host, args.port, args.reload)
     else:

@@ -23,8 +23,12 @@ class SegmentationDataset(Dataset):
         img_path = self.images[idx]
         mask_path = self.masks[idx]
 
-        image = Image.open(img_path).convert("RGB")
-        mask = Image.open(mask_path).convert("L")
+        try:
+            image = Image.open(img_path).convert("RGB")
+            mask = Image.open(mask_path).convert("L")
+        except (OSError, SyntaxError) as e:
+            print(f"[WARN] Skipping corrupted file: {img_path} ({e})")
+            return self.__getitem__((idx + 1) % len(self))
 
         if self.transform:
             image, mask = self.transform(image, mask)
