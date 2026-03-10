@@ -8,7 +8,7 @@ import numpy as np
 from .printer import success
 from pathlib import Path
 
-def inference(image_path, model_path, with_mask):
+def inference(image_path, model_path):
     '''Run inference on a single image using a trained UNet model.'''
 
     # Set device

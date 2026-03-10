@@ -143,7 +143,7 @@ def run_cli():
                   verbose=args.verbose,
                   val_split=args.val_split)
     elif args.command == "inference":
-        img, mask = inference(args.image, args.model, args.with_mask)
+        img, mask = inference(args.image, args.model)
         if args.with_mask:
             save_images(args.output_dir, img, mask)
         else:
